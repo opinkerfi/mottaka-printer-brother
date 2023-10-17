@@ -107,6 +107,53 @@ def get_label_context(request):
 
     return context
 
+def create_visitor_label(font_path, visitor, employee):
+    """
+    Create a label for a visitor
+
+    Note that this is fixed width and height for 62mm labels.
+    """
+
+    width, height = 969, 550 # FIXME: hardcoded for 62mm labels
+    img = Image.new('RGB', (width, height), 'white')
+    d = ImageDraw.Draw(img)
+    offset_vertical = 20
+
+    font = ImageFont.truetype(font_path, 120)
+    title_text = "GESTUR" # Icelandic for "Visitor"
+    title_width, title_height = d.textsize(title_text, font=font)
+    d.text(((width - title_width) / 2, offset_vertical), title_text, fill="black", font=font)
+    offset_vertical += title_height + 75
+
+    # Dynamically adjust font size to fit the label width
+    font_size = 84
+    while True:
+        visitor_font = ImageFont.truetype(font_path, font_size)
+        visitor_width, visitor_height = d.textsize(visitor, font=visitor_font)
+        if visitor_width < (width - 50):
+            break
+        font_size -= 1
+    d.text(((width - visitor_width) / 2, offset_vertical), visitor, fill="black", font=visitor_font)
+    offset_vertical += visitor_height + 75
+
+    employee_header = "Ábyrgðaraðili er"
+    employee_header_font = ImageFont.truetype(font_path, 32)
+    employee_width, employee_height = d.textsize(employee_header, font=employee_header_font)
+    d.text(((width - employee_width) / 2, offset_vertical), employee_header, fill="black", font=employee_header_font)
+    offset_vertical += employee_height + 10
+
+    employee_font = ImageFont.truetype(font_path, 32)
+    employee_width, employee_height = d.textsize(employee, font=employee_font)
+    d.text(((width - employee_width) / 2, offset_vertical), employee, fill="black", font=employee_font)
+    offset_vertical += employee_height + 30
+
+    date = datetime.datetime.now().strftime("%d.%m.%Y %H:%M")
+    date_font = ImageFont.truetype(font_path, 32)
+    date_width, date_height = d.textsize(date, font=date_font)
+    d.text(((width - date_width) / 2, offset_vertical), date, fill="black", font=date_font)
+
+    return img
+
 def create_label_im(text, **kwargs):
     label_type = kwargs['kind']
     im_font = ImageFont.truetype(kwargs['font_path'], kwargs['font_size'])
@@ -194,28 +241,8 @@ def print_visitor_pass():
         return_dict['error'] = 'Please provide employee responsible for the visit'
         return return_dict
 
-    context['margin_bottom'] = 1
-    context['cut'] = False
-    context['text'] = 'GESTUR'
-    context['font_size'] = 120
-    print_label(im, context)
-
-    context['text'] = context['visitor']
-    context['font_size'] = 80
-    print_label(im, context)
-
-    context['text'] = 'Ábyrgðaraðili'
-    context['font_size'] = 42
-    print_label(im, context)
-
-    context['text'] = context['employee']
-    context['font_size'] = 42
-    print_label(im, context)
-
-    context['text'] = datetime.datetime.now().strftime("%d.%m.%Y %H:%M")
-    context['font_size'] = 16
-    context['cut'] = True
-    print_label(im, context)
+    img = create_visitor_label(context['font_path'], context['visitor'], context['employee'])
+    print_label(img, context)
 
     return return_dict
 
