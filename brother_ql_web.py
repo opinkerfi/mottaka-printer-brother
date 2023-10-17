@@ -114,7 +114,7 @@ def create_visitor_label(font_path, visitor, employee):
     Note that this is fixed width and height for 62mm labels.
     """
 
-    width, height = 969, 550 # FIXME: hardcoded for 62mm labels
+    width, height = 696, 550 # FIXME: hardcoded for 62mm labels
     img = Image.new('RGB', (width, height), 'white')
     d = ImageDraw.Draw(img)
     offset_vertical = 20
