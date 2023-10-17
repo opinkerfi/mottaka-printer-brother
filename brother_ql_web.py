@@ -117,7 +117,8 @@ def create_label_im(text, **kwargs):
         if line == '': line = ' '
         lines.append(line)
     text = '\n'.join(lines)
-    linesize = im_font.getsize(text)
+    linesize = im_font.getbbox(text)[-2:]
+
     textsize = draw.multiline_textsize(text, font=im_font)
     width, height = kwargs['width'], kwargs['height']
     if kwargs['orientation'] == 'standard':
