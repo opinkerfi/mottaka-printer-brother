@@ -121,7 +121,7 @@ def create_visitor_label(font_path, visitor, employee):
 
     font = ImageFont.truetype(font_path, 120)
     title_text = "GESTUR" # Icelandic for "Visitor"
-    title_width, title_height = d.textsize(title_text, font=font)
+    title_width, title_height = d.textbbox((0, 0), title_text, font=font)[2:]
     d.text(((width - title_width) / 2, offset_vertical), title_text, fill="black", font=font)
     offset_vertical += title_height + 75
 
@@ -129,7 +129,7 @@ def create_visitor_label(font_path, visitor, employee):
     font_size = 84
     while True:
         visitor_font = ImageFont.truetype(font_path, font_size)
-        visitor_width, visitor_height = d.textsize(visitor, font=visitor_font)
+        visitor_width, visitor_height = d.textbbox((0, 0), visitor, font=visitor_font)[2:]
         if visitor_width < (width - 50):
             break
         font_size -= 1
@@ -138,18 +138,18 @@ def create_visitor_label(font_path, visitor, employee):
 
     employee_header = "Ábyrgðaraðili er"
     employee_header_font = ImageFont.truetype(font_path, 32)
-    employee_width, employee_height = d.textsize(employee_header, font=employee_header_font)
+    employee_width, employee_height = d.textbbox((0, 0), employee_header, font=employee_header_font)[2:]
     d.text(((width - employee_width) / 2, offset_vertical), employee_header, fill="black", font=employee_header_font)
     offset_vertical += employee_height + 10
 
     employee_font = ImageFont.truetype(font_path, 32)
-    employee_width, employee_height = d.textsize(employee, font=employee_font)
+    employee_width, employee_height = d.textbbox((0, 0), employee, font=employee_font)[2:]
     d.text(((width - employee_width) / 2, offset_vertical), employee, fill="black", font=employee_font)
     offset_vertical += employee_height + 30
 
     date = datetime.datetime.now().strftime("%d.%m.%Y %H:%M")
     date_font = ImageFont.truetype(font_path, 32)
-    date_width, date_height = d.textsize(date, font=date_font)
+    date_width, date_height = d.textbbox((0, 0), date, font=date_font)[2:]
     d.text(((width - date_width) / 2, offset_vertical), date, fill="black", font=date_font)
 
     return img
@@ -225,7 +225,7 @@ def print_visitor_pass():
     returns: JSON
     """
 
-    return_dict = {'success': False}
+    return_dict = {'success': True}
 
     try:
         context = get_label_context(request)
@@ -244,11 +244,6 @@ def print_visitor_pass():
     img = create_visitor_label(context['font_path'], context['visitor'], context['employee'])
     print_label(img, context)
 
-    return return_dict
-
-def print_label(im, context):
-    time.sleep(1)
-
     if DEBUG: im.save('sample-out.png')
 
     if context['kind'] == ENDLESS_LABEL:
@@ -257,9 +252,9 @@ def print_label(im, context):
         rotate = 'auto'
 
     qlr = BrotherQLRaster(CONFIG['PRINTER']['MODEL'])
-    red = False
-    if 'red' in context['label_size']:
-        red = True
+
+    red = 'red' in context['label_size']
+
     create_label(qlr, im, context['label_size'], red=red, threshold=context['threshold'], cut=context['cut'], rotate=rotate)
 
     if not DEBUG:
@@ -272,6 +267,9 @@ def print_label(im, context):
             return_dict['message'] = str(e)
             logger.warning('Exception happened: %s', e)
             return return_dict
+
+    return return_dict
+
 
 @post('/api/print/text')
 @get('/api/print/text')
