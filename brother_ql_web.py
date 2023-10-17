@@ -5,7 +5,7 @@
 This is a web service to print labels on Brother QL label printers.
 """
 
-import sys, logging, random, json, argparse
+import sys, logging, random, json, argparse, time, datetime
 from io import BytesIO
 
 from bottle import run, route, get, post, response, request, jinja2_view as view, static_file, redirect
@@ -71,6 +71,8 @@ def get_label_context(request):
       'margin_left':   float(d.get('margin_left',   35))/100.,
       'margin_right':  float(d.get('margin_right',  35))/100.,
       'cut':           d.get('cut', 'true').lower() == 'true',
+      'visitor':       d.get('visitor', None),
+      'employee':      d.get('employee', None),
     }
     context['margin_top']    = int(context['font_size']*context['margin_top'])
     context['margin_bottom'] = int(context['font_size']*context['margin_bottom'])
@@ -166,6 +168,83 @@ def image_to_png_bytes(im):
     im.save(image_buffer, format="PNG")
     image_buffer.seek(0)
     return image_buffer.read()
+
+@get('/api/print/visitorpass')
+@post('/api/print/visitorpass')
+def print_visitor_pass():
+    """
+    API to print visitor pass
+
+    returns: JSON
+    """
+
+    return_dict = {'success': False}
+
+    try:
+        context = get_label_context(request)
+    except LookupError as e:
+        return_dict['error'] = e.msg
+        return return_dict
+
+    if context['visitor'] is None:
+        return_dict['error'] = 'Please provide visitor name'
+        return return_dict
+
+    if context['employee'] is None:
+        return_dict['error'] = 'Please provide employee responsible for the visit'
+        return return_dict
+
+    context['margin_bottom'] = 1
+    context['cut'] = False
+    context['text'] = 'GESTUR'
+    context['font_size'] = 120
+    print_label(im, context)
+
+    context['text'] = context['visitor']
+    context['font_size'] = 80
+    print_label(im, context)
+
+    context['text'] = 'Ábyrgðaraðili'
+    context['font_size'] = 42
+    print_label(im, context)
+
+    context['text'] = context['employee']
+    context['font_size'] = 42
+    print_label(im, context)
+
+    context['text'] = datetime.datetime.now().strftime("%d.%m.%Y %H:%M")
+    context['font_size'] = 16
+    context['cut'] = True
+    print_label(im, context)
+
+    return return_dict
+
+def print_label(im, context):
+    time.sleep(1)
+
+    if DEBUG: im.save('sample-out.png')
+
+    if context['kind'] == ENDLESS_LABEL:
+        rotate = 0 if context['orientation'] == 'standard' else 90
+    elif context['kind'] in (ROUND_DIE_CUT_LABEL, DIE_CUT_LABEL):
+        rotate = 'auto'
+
+    qlr = BrotherQLRaster(CONFIG['PRINTER']['MODEL'])
+    red = False
+    if 'red' in context['label_size']:
+        red = True
+    create_label(qlr, im, context['label_size'], red=red, threshold=context['threshold'], cut=context['cut'], rotate=rotate)
+
+    if not DEBUG:
+        try:
+            be = BACKEND_CLASS(CONFIG['PRINTER']['PRINTER'])
+            be.write(qlr.data)
+            be.dispose()
+            del be
+        except Exception as e:
+            return_dict['message'] = str(e)
+            logger.warning('Exception happened: %s', e)
+            return return_dict
 
 @post('/api/print/text')
 @get('/api/print/text')
