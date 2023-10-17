@@ -241,8 +241,7 @@ def print_visitor_pass():
         return_dict['error'] = 'Please provide employee responsible for the visit'
         return return_dict
 
-    img = create_visitor_label(context['font_path'], context['visitor'], context['employee'])
-    print_label(img, context)
+    im = create_visitor_label(context['font_path'], context['visitor'], context['employee'])
 
     if DEBUG: im.save('sample-out.png')
 
