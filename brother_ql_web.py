@@ -114,16 +114,16 @@ def create_visitor_label(font_path, visitor, employee):
     Note that this is fixed width and height for 62mm labels.
     """
 
-    width, height = 696, 550 # FIXME: hardcoded for 62mm labels
+    width, height = 696, 480 # FIXME: hardcoded for 62mm labels
     img = Image.new('RGB', (width, height), 'white')
     d = ImageDraw.Draw(img)
-    offset_vertical = 20
+    offset_vertical = 10
 
-    font = ImageFont.truetype(font_path, 120)
+    font = ImageFont.truetype(font_path, 100)
     title_text = "GESTUR" # Icelandic for "Visitor"
     title_width, title_height = d.textbbox((0, 0), title_text, font=font)[2:]
     d.text(((width - title_width) / 2, offset_vertical), title_text, fill="black", font=font)
-    offset_vertical += title_height + 75
+    offset_vertical += title_height + 55
 
     # Dynamically adjust font size to fit the label width
     font_size = 84
